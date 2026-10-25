@@ -158,8 +158,22 @@ test('Init generators (claudemd, settings, mcp) preserve all contracts and embed
   assert.equal(mcpCfg.mcpServers['claude-flow'].env.CLAUDE_FLOW_MCP_TOOLS, 'core');
 });
 
-test('Governance artifacts (TOKENS_OPTIMIZATION.md, PROJECT_BRIEF.md, SESSION_NOTES.md, SESSION_LOG.md) exist', () => {
-  for (const f of ['TOKENS_OPTIMIZATION.md', 'PROJECT_BRIEF.md', 'SESSION_NOTES.md', 'SESSION_LOG.md']) {
+test('Governance artifacts and Russian / OpenCode-MiMoCode documentation exist', () => {
+  for (const f of [
+    'TOKENS_OPTIMIZATION.md',
+    'PROJECT_BRIEF.md',
+    'SESSION_NOTES.md',
+    'SESSION_LOG.md',
+    'README.ru.md',
+    'docs/OPENCODE_MIMOCODE_GUIDE.md',
+  ]) {
     assert.equal(fs.existsSync(path.join(ROOT, f)), true, `Missing ${f}`);
   }
+  const guide = fs.readFileSync(path.join(ROOT, 'docs/OPENCODE_MIMOCODE_GUIDE.md'), 'utf8');
+  assert.match(guide, /opencode\.json/);
+  assert.match(guide, /mimocode/i);
+  assert.match(guide, /CLAUDE_FLOW_MCP_TOOLS/);
+  const readmeRu = fs.readFileSync(path.join(ROOT, 'README.ru.md'), 'utf8');
+  assert.match(readmeRu, /OpenCode/);
+  assert.match(readmeRu, /MiMoCode/);
 });

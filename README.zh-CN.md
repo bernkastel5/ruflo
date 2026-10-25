@@ -16,7 +16,7 @@
 
 # Ruflo
 
-[English](README.md) · [简体中文](README.zh-CN.md)
+[English](README.md) · [简体中文](README.zh-CN.md) · [Русский](README.ru.md)
 
 **面向 Claude Code 与 Codex 的智能体元基座（meta-harness）。**
 

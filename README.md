@@ -50,7 +50,7 @@ For clients that support local stdio MCP servers, configure **command** `npx` an
 npx -y ruflo@latest mcp start
 ```
 
-MCP exposes Ruflo tools to your client. The console and mods above are Claude Code integrations; hook support depends on the client.
+MCP exposes Ruflo tools to your client. The console and mods above are Claude Code integrations; hook support depends on the client. For **OpenCode / MiMoCode** setup with 5x token optimization (`--tools core`), see the [OpenCode & MiMoCode Guide (RU)](docs/OPENCODE_MIMOCODE_GUIDE.md).
 
 <img src="docs/assets/readme/icons/terminal.svg" width="28" height="28" alt=""> **Prefer a plain terminal? Optional.** The console also runs on its own, with no Claude Code: `npx ruflo tui` (add `--plain` to print one frame for scripts). It shows Overview, Cost, Swarm, Events and Missions, plus an optional AI page. [Terminal UI guide](docs/USERGUIDE.md#terminal-ui-optional)
 
@@ -85,7 +85,7 @@ npx ruvector
 
 # Ruflo
 
-[English](README.md) · [简体中文](README.zh-CN.md)
+[English](README.md) · [简体中文](README.zh-CN.md) · [Русский](README.ru.md)
 
 
 [![RuFlo Explained — build an AI team that plans, remembers, tests, and improves](docs/assets/ruflo-explained/ch14.jpg)](docs/ruflo-explained.md)

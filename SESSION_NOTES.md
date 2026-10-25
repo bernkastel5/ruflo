@@ -9,6 +9,7 @@
 - В генератор `v3/@claude-flow/cli/src/init/claudemd-generator.ts` встроены правила `Token Optimization Discipline` для всех шаблонов `ruflo init`.
 - Добавлен и успешно выполнен интеграционный тестовый набор `tests/token-optimization.test.mjs`.
 - Все изменения закоммичены и отправлены в удалённую ветку `origin/arena/9cc0de46-ruflo`.
+- Добавлена пошаговая рабочая инструкция для OpenCode и MiMoCode (`docs/OPENCODE_MIMOCODE_GUIDE.md`) и полная русскоязычная версия `README.ru.md` (с перекрёстными ссылками из `README.md` и `README.zh-CN.md`).
 
 ## Что осталось
 - Задача выполнена в полном объёме; при необходимости в будущих сессиях можно тонко настраивать список `CORE_MCP_TOOL_SELECTORS` под специфичные доменные плагины.
@@ -24,6 +25,7 @@
 ## Карта изменённых и созданных файлов
 - `PROJECT_BRIEF.md` — структурированная постановка задачи и критерии приёмки.
 - `TOKENS_OPTIMIZATION.md` — правила экономии токенов и описание рычагов конфигурации Ruflo.
+- `README.ru.md`, `docs/OPENCODE_MIMOCODE_GUIDE.md` — русскоязычный README и практическая инструкция для подключения и работы в OpenCode / MiMoCode.
 - `SESSION_NOTES.md`, `SESSION_LOG.md` — артефакты жизненного цикла контекста и лога расхода.
 - `CLAUDE.md`, `AGENTS.md` — сжатые системные промпты (уменьшены в 8.6x и 6.6x).
 - `docs/reference/CLAUDE_REFERENCE.md`, `docs/reference/AGENTS_REFERENCE.md` — полные справочные копии для точечного чтения по требованию.
