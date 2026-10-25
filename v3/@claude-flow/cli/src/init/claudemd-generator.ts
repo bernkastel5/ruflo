@@ -19,9 +19,13 @@ function behavioralRules(): string {
 - NEVER save working files or tests to root — use \`/src\`, \`/tests\`, \`/docs\`, \`/config\`, \`/scripts\`
 - ALWAYS read a file before editing it
 - NEVER commit secrets, credentials, or .env files
-- NEVER add a \`Co-Authored-By\` trailer to user commits unless this project's \`.claude/settings.json\` has \`attribution.commit\` set (#2078). The Claude Code Bash tool may suggest one in its default commit-message template — ignore it. \`Co-Authored-By\` is semantic authorship attribution under git/GitHub convention; the tool is the facilitator, not a co-author.
-- Keep files under 500 lines
-- Validate input at system boundaries`;
+- NEVER add a \`Co-Authored-By\` trailer to user commits unless this project's \`.claude/settings.json\` has \`attribution.commit\` set (#2078)
+- Keep files under 500 lines and validate input at system boundaries
+
+### Token Optimization Discipline
+- Check file size (\`wc -l\`) before reading: for files > 200 lines, read targeted ranges (\`offset\`/\`limit\` or \`rg -C\`) instead of whole files; skip lockfiles, \`dist/\`, \`node_modules/\`, \`*.min.*\`.
+- Never re-read files already in context; cap command output (\`| head -n 50\`, \`git diff --stat\`, quiet test flags).
+- Cite \`path:lines\` instead of quoting code in context; track state in \`SESSION_NOTES.md\` and \`SESSION_LOG.md\`, and compact/handover at >45% context window.`;
 }
 
 function policyGovernedWorkflow(): string {

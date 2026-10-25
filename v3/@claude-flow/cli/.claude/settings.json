@@ -1,8 +1,10 @@
 {
+  "skillListingBudgetFraction": 0.012,
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_FLOW_V3_ENABLED": "true",
-    "CLAUDE_FLOW_HOOKS_ENABLED": "true"
+    "CLAUDE_FLOW_HOOKS_ENABLED": "true",
+    "CLAUDE_FLOW_MCP_TOOLS": "core"
   },
   "hooks": {
     "PreToolUse": [
@@ -170,8 +172,15 @@
       "cveCheck": true
     },
     "daemon": {
-      "autoStart": true,
-      "workers": ["map", "audit", "optimize", "consolidate", "testgaps", "ultralearn"]
+      "autoStart": false,
+      "workers": ["map", "audit", "optimize"]
+    },
+    "tokenOptimization": {
+      "enabled": true,
+      "mcpToolsProfile": "core",
+      "skillListingBudgetFraction": 0.012,
+      "agentTrim": true,
+      "compactCarry": true
     },
     "learning": {
       "enabled": true,

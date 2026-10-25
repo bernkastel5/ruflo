@@ -11,7 +11,9 @@ import { AUTO_MEMORY_HOOK_TIMEOUT_S, helperHookCommand, helperScopeFor, helperSt
  * Generate the complete settings.json content
  */
 export function generateSettings(options: InitOptions): object {
-  const settings: Record<string, unknown> = {};
+  const settings: Record<string, unknown> = {
+    skillListingBudgetFraction: 0.012,
+  };
 
   // Add hooks if enabled. CRITICAL (#1744 #3): only emit the hooks block when
   // the helpers directory will also be bundled. The hook commands point at
@@ -70,6 +72,7 @@ export function generateSettings(options: InitOptions): object {
     // Claude Flow specific environment
     CLAUDE_FLOW_V3_ENABLED: 'true',
     CLAUDE_FLOW_HOOKS_ENABLED: 'true',
+    CLAUDE_FLOW_MCP_TOOLS: 'core',
   };
 
   // Detect platform for platform-aware configuration
@@ -141,6 +144,16 @@ export function generateSettings(options: InitOptions): object {
         audit: { interval: '4h', priority: 'critical' },
         optimize: { interval: '2h', priority: 'high' },
       },
+    },
+    tokenOptimization: {
+      enabled: true,
+      mcpToolsProfile: 'core',
+      skillListingBudgetFraction: 0.012,
+      agentTrim: true,
+      compactCarry: true,
+      maxFileReadLines: 200,
+      maxCommandOutputLines: 50,
+      contextCompactionThreshold: 0.45,
     },
     learning: {
       enabled: true,

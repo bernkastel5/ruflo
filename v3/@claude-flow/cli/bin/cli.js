@@ -37,7 +37,58 @@ const _origError = console.error;
 
 // #2726 — Some MCP clients place every advertised schema in every model
 // request. Keep "all" as the backwards-compatible default, but honor the
-// same category/namespace/exact-name selector as `mcp start --tools`.
+// same category/namespace/exact-name selector (and the 'core' preset) as
+// `mcp start --tools`.
+const _CORE_MCP_TOOL_SELECTORS = [
+  'swarm_init',
+  'swarm_status',
+  'swarm_health',
+  'swarm_shutdown',
+  'agent_spawn',
+  'agent_list',
+  'agent_status',
+  'agent_terminate',
+  'agent_health',
+  'memory_store',
+  'memory_retrieve',
+  'memory_search',
+  'memory_search_unified',
+  'memory_list',
+  'memory_delete',
+  'memory_stats',
+  'memory_import_claude',
+  'memory_bridge_status',
+  'task_create',
+  'task_list',
+  'task_status',
+  'task_complete',
+  'task_update',
+  'session_save',
+  'session_restore',
+  'session_list',
+  'session_info',
+  'config_get',
+  'config_set',
+  'config_list',
+  'guidance_brain',
+  'guidance_recommend',
+  'guidance_discover',
+  'hooks_route',
+  'hooks_pre-task',
+  'hooks_post-task',
+  'hooks_post-edit',
+  'hooks_session-start',
+  'hooks_session-end',
+  'hooks_session-restore',
+  'hooks_metrics',
+  'hooks_token-optimize',
+  'hooks_codemod',
+  'system_status',
+  'system_health',
+  'aidefence_scan',
+  'aidefence_is_safe',
+];
+
 function _filterAdvertisedMcpTools(tools) {
   const argv = process.argv.slice(2);
   const toolsIndex = argv.findIndex((arg) => arg === '--tools');
@@ -46,9 +97,16 @@ function _filterAdvertisedMcpTools(tools) {
     || (toolsIndex >= 0 ? argv[toolsIndex + 1] : undefined)
     || (inlineTools ? inlineTools.slice('--tools='.length) : undefined);
   if (!configured || configured.trim().toLowerCase() === 'all') return tools;
-  const selectors = new Set(
-    configured.split(',').map((item) => item.trim().toLowerCase()).filter(Boolean),
-  );
+  const selectors = new Set();
+  for (const item of configured.split(',')) {
+    const normalized = item.trim().toLowerCase();
+    if (!normalized) continue;
+    if (normalized === 'core') {
+      for (const coreItem of _CORE_MCP_TOOL_SELECTORS) selectors.add(coreItem);
+    } else {
+      selectors.add(normalized);
+    }
+  }
   if (selectors.size === 0) return tools;
   return tools.filter((tool) => {
     const name = tool.name.toLowerCase();
@@ -57,6 +115,22 @@ function _filterAdvertisedMcpTools(tools) {
       || selectors.has(category)
       || Array.from(selectors).some((selector) => name.startsWith(`${selector}_`));
   });
+}
+
+function _formatMcpToolResult(result) {
+  const pretty = process.env.CLAUDE_FLOW_MCP_PRETTY_JSON === '1' || process.env.CLAUDE_FLOW_MCP_PRETTY_JSON === 'true';
+  const serialized = JSON.stringify(result, null, pretty ? 2 : undefined) ?? 'null';
+  const rawLimit = process.env.CLAUDE_FLOW_MCP_MAX_OUTPUT_CHARS;
+  const maxChars = rawLimit !== undefined ? Number.parseInt(rawLimit, 10) : 32000;
+  if (Number.isFinite(maxChars) && maxChars > 0 && serialized.length > maxChars) {
+    return JSON.stringify({
+      truncated: true,
+      originalChars: serialized.length,
+      maxChars,
+      preview: serialized.slice(0, maxChars),
+    });
+  }
+  return serialized;
 }
 const _isCosmeticAgentdbPatchNoise = (msg) =>
   msg.includes('[AgentDB Patch]') && msg.includes('Controller index not found');
@@ -326,7 +400,7 @@ if (isHarness) {
           return {
             jsonrpc: '2.0',
             id: message.id,
-            result: { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], isError },
+            result: { content: [{ type: 'text', text: _formatMcpToolResult(result) }], isError },
           };
         } catch (error) {
           return {

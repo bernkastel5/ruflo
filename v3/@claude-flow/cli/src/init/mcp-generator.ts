@@ -71,6 +71,7 @@ export function generateMCPConfig(options: InitOptions): object {
         CLAUDE_FLOW_TOPOLOGY: options.runtime.topology,
         CLAUDE_FLOW_MAX_AGENTS: String(options.runtime.maxAgents),
         CLAUDE_FLOW_MEMORY_BACKEND: options.runtime.memoryBackend,
+        CLAUDE_FLOW_MCP_TOOLS: 'core',
       },
       { autoStart: config.autoStart }
     );

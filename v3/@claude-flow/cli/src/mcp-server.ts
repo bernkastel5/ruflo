@@ -324,17 +324,115 @@ export function parseMcpToolSelection(value: string | undefined): string[] | 'al
 }
 
 /**
+ * Built-in core MCP tool selector preset ('core').
+ * Advertises essential coordination tools (~42 tools instead of ~387) to cut
+ * per-turn tools/list schema token overhead by ~10x while keeping all tools
+ * registered and callable via tools/call.
+ */
+export const CORE_MCP_TOOL_SELECTORS = [
+  'swarm_init',
+  'swarm_status',
+  'swarm_health',
+  'swarm_shutdown',
+  'agent_spawn',
+  'agent_list',
+  'agent_status',
+  'agent_terminate',
+  'agent_health',
+  'memory_store',
+  'memory_retrieve',
+  'memory_search',
+  'memory_search_unified',
+  'memory_list',
+  'memory_delete',
+  'memory_stats',
+  'memory_import_claude',
+  'memory_bridge_status',
+  'task_create',
+  'task_list',
+  'task_status',
+  'task_complete',
+  'task_update',
+  'session_save',
+  'session_restore',
+  'session_list',
+  'session_info',
+  'config_get',
+  'config_set',
+  'config_list',
+  'guidance_brain',
+  'guidance_recommend',
+  'guidance_discover',
+  'hooks_route',
+  'hooks_pre-task',
+  'hooks_post-task',
+  'hooks_post-edit',
+  'hooks_session-start',
+  'hooks_session-end',
+  'hooks_session-restore',
+  'hooks_metrics',
+  'hooks_token-optimize',
+  'hooks_codemod',
+  'system_status',
+  'system_health',
+  'aidefence_scan',
+  'aidefence_is_safe',
+] as const;
+
+export function expandMcpToolSelectors(selection: readonly string[]): Set<string> {
+  const selectors = new Set<string>();
+  for (const item of selection) {
+    const normalized = item.trim().toLowerCase();
+    if (!normalized) continue;
+    if (normalized === 'core') {
+      for (const coreItem of CORE_MCP_TOOL_SELECTORS) {
+        selectors.add(coreItem);
+      }
+    } else {
+      selectors.add(normalized);
+    }
+  }
+  return selectors;
+}
+
+/**
+ * Serialize and bound MCP tool responses to minimize per-call context token bloat.
+ * Uses compact single-line JSON by default (set CLAUDE_FLOW_MCP_PRETTY_JSON=1 for
+ * 2-space pretty-printing) and caps output at CLAUDE_FLOW_MCP_MAX_OUTPUT_CHARS
+ * (default 32,000 chars).
+ */
+export function formatMcpToolResult(
+  result: unknown,
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  const pretty = env.CLAUDE_FLOW_MCP_PRETTY_JSON === '1' || env.CLAUDE_FLOW_MCP_PRETTY_JSON === 'true';
+  const serialized = JSON.stringify(result, null, pretty ? 2 : undefined) ?? 'null';
+  const rawLimit = env.CLAUDE_FLOW_MCP_MAX_OUTPUT_CHARS;
+  const maxChars = rawLimit !== undefined ? Number.parseInt(rawLimit, 10) : 32_000;
+  if (Number.isFinite(maxChars) && maxChars > 0 && serialized.length > maxChars) {
+    return JSON.stringify({
+      truncated: true,
+      originalChars: serialized.length,
+      maxChars,
+      preview: serialized.slice(0, maxChars),
+    });
+  }
+  return serialized;
+}
+
+/**
  * Apply the existing `--tools` contract to advertised schemas. A selector can
- * be an exact tool name, a category, or a namespace prefix (`memory` matches
- * `memory_store`). Execution remains registered internally; only the fixed
- * per-request schema catalogue is reduced.
+ * be an exact tool name, a category, a namespace prefix (`memory` matches
+ * `memory_store`), or the `'core'` preset. Execution remains registered
+ * internally; only the fixed per-request schema catalogue is reduced.
  */
 export function filterAdvertisedMcpTools<T extends { name: string; category?: string }>(
   tools: T[],
   selection: string[] | 'all',
 ): T[] {
   if (selection === 'all') return tools;
-  const selectors = new Set(selection.map((item) => item.toLowerCase()));
+  const selectors = expandMcpToolSelectors(selection);
+  if (selectors.size === 0) return tools;
   return tools.filter((tool) => {
     const name = tool.name.toLowerCase();
     const category = tool.category?.toLowerCase();
@@ -982,7 +1080,7 @@ export class MCPServerManager extends EventEmitter {
             return {
               jsonrpc: '2.0',
               id: message.id,
-              result: { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], isError },
+              result: { content: [{ type: 'text', text: formatMcpToolResult(result) }], isError },
             };
           } catch (error) {
             trackRequest(toolName, false);

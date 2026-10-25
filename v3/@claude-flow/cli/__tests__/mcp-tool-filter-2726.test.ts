@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   assessMcpSchemaOverhead,
+  CORE_MCP_TOOL_SELECTORS,
   filterAdvertisedMcpTools,
+  formatMcpToolResult,
   parseMcpToolSelection,
 } from '../src/mcp-server.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const tools = [
   {
@@ -78,9 +83,59 @@ describe('MCP advertised-tool filtering (#2726)', () => {
   });
 
   it('applies filtering in the executable MCP fast path', () => {
-    const executable = readFileSync(join(process.cwd(), 'bin', 'cli.js'), 'utf8');
+    const cliBinPath = existsSync(join(__dirname, '..', 'bin', 'cli.js'))
+      ? join(__dirname, '..', 'bin', 'cli.js')
+      : join(process.cwd(), 'bin', 'cli.js');
+    const executable = readFileSync(cliBinPath, 'utf8');
     expect(executable).toContain('_filterAdvertisedMcpTools(listMCPTools())');
     expect(executable).toContain('CLAUDE_FLOW_MCP_TOOLS');
     expect(executable).toContain("arg === '--tools'");
+  });
+
+  it('expands the core preset to essential coordination tools while excluding non-core categories', () => {
+    const extendedTools = [
+      ...tools,
+      {
+        name: 'metaharness_score',
+        category: 'metaharness',
+        description: 'Score harness readiness',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        name: 'rure_analyze',
+        category: 'rure',
+        description: 'Static reverse engineering',
+        inputSchema: { type: 'object', properties: {} },
+      },
+    ];
+    const selected = filterAdvertisedMcpTools(extendedTools, ['core']);
+    expect(selected.map((tool) => tool.name)).toEqual([
+      'memory_store',
+      'memory_search',
+      'swarm_init',
+      'aidefence_scan',
+    ]);
+    expect(CORE_MCP_TOOL_SELECTORS).toContain('memory_store');
+    expect(CORE_MCP_TOOL_SELECTORS).toContain('swarm_init');
+  });
+
+  it('serializes MCP tool results compactly by default and truncates oversized payloads safely', () => {
+    const payload = { status: 'ok', items: [1, 2, 3], nested: { a: 'b' } };
+    const compact = formatMcpToolResult(payload, {});
+    expect(compact).toBe(JSON.stringify(payload));
+    expect(compact.length).toBeLessThan(JSON.stringify(payload, null, 2).length);
+
+    const pretty = formatMcpToolResult(payload, { CLAUDE_FLOW_MCP_PRETTY_JSON: '1' });
+    expect(pretty).toBe(JSON.stringify(payload, null, 2));
+
+    const huge = { data: 'x'.repeat(500) };
+    const truncated = JSON.parse(
+      formatMcpToolResult(huge, { CLAUDE_FLOW_MCP_MAX_OUTPUT_CHARS: '100' }),
+    );
+    expect(truncated).toMatchObject({
+      truncated: true,
+      maxChars: 100,
+    });
+    expect(truncated.preview).toHaveLength(100);
   });
 });

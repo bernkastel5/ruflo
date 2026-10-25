@@ -152,7 +152,49 @@ async function handleMessage(message) {
         };
 
       case 'tools/list': {
-        const tools = listMCPTools();
+        const argv = process.argv.slice(2);
+        const toolsIndex = argv.findIndex((arg) => arg === '--tools');
+        const inlineTools = argv.find((arg) => arg.startsWith('--tools='));
+        const configured = process.env.CLAUDE_FLOW_MCP_TOOLS
+          || (toolsIndex >= 0 ? argv[toolsIndex + 1] : undefined)
+          || (inlineTools ? inlineTools.slice('--tools='.length) : undefined);
+        const coreSelectors = [
+          'swarm_init', 'swarm_status', 'swarm_health', 'swarm_shutdown',
+          'agent_spawn', 'agent_list', 'agent_status', 'agent_terminate', 'agent_health',
+          'memory_store', 'memory_retrieve', 'memory_search', 'memory_search_unified',
+          'memory_list', 'memory_delete', 'memory_stats', 'memory_import_claude', 'memory_bridge_status',
+          'task_create', 'task_list', 'task_status', 'task_complete', 'task_update',
+          'session_save', 'session_restore', 'session_list', 'session_info',
+          'config_get', 'config_set', 'config_list',
+          'guidance_brain', 'guidance_recommend', 'guidance_discover',
+          'hooks_route', 'hooks_pre-task', 'hooks_post-task', 'hooks_post-edit',
+          'hooks_session-start', 'hooks_session-end', 'hooks_session-restore',
+          'hooks_metrics', 'hooks_token-optimize', 'hooks_codemod',
+          'system_status', 'system_health', 'aidefence_scan', 'aidefence_is_safe',
+        ];
+        const allTools = listMCPTools();
+        let tools = allTools;
+        if (configured && configured.trim().toLowerCase() !== 'all') {
+          const selectors = new Set();
+          for (const item of configured.split(',')) {
+            const normalized = item.trim().toLowerCase();
+            if (!normalized) continue;
+            if (normalized === 'core') {
+              for (const c of coreSelectors) selectors.add(c);
+            } else {
+              selectors.add(normalized);
+            }
+          }
+          if (selectors.size > 0) {
+            tools = allTools.filter((tool) => {
+              const name = tool.name.toLowerCase();
+              const category = typeof tool.category === 'string' ? tool.category.toLowerCase() : '';
+              return selectors.has(name)
+                || selectors.has(category)
+                || Array.from(selectors).some((selector) => name.startsWith(`${selector}_`));
+            });
+          }
+        }
         return {
           jsonrpc: '2.0',
           id: message.id,
@@ -191,10 +233,17 @@ async function handleMessage(message) {
 
         try {
           const result = await callMCPTool(toolName, toolParams, { sessionId, transport: 'stdio' });
+          const pretty = process.env.CLAUDE_FLOW_MCP_PRETTY_JSON === '1' || process.env.CLAUDE_FLOW_MCP_PRETTY_JSON === 'true';
+          const serialized = JSON.stringify(result, null, pretty ? 2 : undefined) ?? 'null';
+          const rawLimit = process.env.CLAUDE_FLOW_MCP_MAX_OUTPUT_CHARS;
+          const maxChars = rawLimit !== undefined ? Number.parseInt(rawLimit, 10) : 32000;
+          const text = (Number.isFinite(maxChars) && maxChars > 0 && serialized.length > maxChars)
+            ? JSON.stringify({ truncated: true, originalChars: serialized.length, maxChars, preview: serialized.slice(0, maxChars) })
+            : serialized;
           return {
             jsonrpc: '2.0',
             id: message.id,
-            result: { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] },
+            result: { content: [{ type: 'text', text }] },
           };
         } catch (error) {
           return {

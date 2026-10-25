@@ -1,11 +1,12 @@
 {
-  "skillListingBudgetFraction": 0.06,
-  "customInstructions": "Follow the project's CLAUDE.md guidelines. Use concurrent execution for all operations. Prioritize v3 implementation with security-first development, 15-agent swarm coordination, phased performance optimization, and cross-platform helper automation.",
+  "skillListingBudgetFraction": 0.012,
+  "customInstructions": "Follow CLAUDE.md and TOKENS_OPTIMIZATION.md: check file size before reading (>200 lines read targeted ranges only), cap command outputs, avoid redundant reads, and use concurrent execution.",
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_FLOW_V3_ENABLED": "true",
     "CLAUDE_FLOW_HOOKS_ENABLED": "true",
-    "CLAUDE_CODE_ENABLE_FUNCTION_HOOKS": "1"
+    "CLAUDE_CODE_ENABLE_FUNCTION_HOOKS": "1",
+    "CLAUDE_FLOW_MCP_TOOLS": "core"
   },
   "permissions": {
     "allow": [
@@ -207,27 +208,26 @@
       "enabled": true
     },
     "daemon": {
-      "autoStart": true,
+      "autoStart": false,
       "workers": [
         "map",
         "audit",
-        "optimize",
-        "consolidate",
-        "testgaps",
-        "ultralearn",
-        "deepdive",
-        "document",
-        "refactor",
-        "benchmark"
+        "optimize"
       ],
       "schedules": {
-        "audit": { "interval": "1h", "priority": "critical" },
-        "optimize": { "interval": "30m", "priority": "high" },
-        "consolidate": { "interval": "2h", "priority": "low" },
-        "document": { "interval": "1h", "priority": "normal" },
-        "deepdive": { "interval": "4h", "priority": "normal" },
-        "ultralearn": { "interval": "1h", "priority": "normal" }
+        "audit": { "interval": "4h", "priority": "critical" },
+        "optimize": { "interval": "2h", "priority": "high" }
       }
+    },
+    "tokenOptimization": {
+      "enabled": true,
+      "mcpToolsProfile": "core",
+      "skillListingBudgetFraction": 0.012,
+      "agentTrim": true,
+      "compactCarry": true,
+      "maxFileReadLines": 200,
+      "maxCommandOutputLines": 50,
+      "contextCompactionThreshold": 0.45
     },
     "learning": {
       "enabled": true,
@@ -274,8 +274,13 @@
         "-y",
         "ruflo@latest",
         "mcp",
-        "start"
-      ]
+        "start",
+        "--tools",
+        "core"
+      ],
+      "env": {
+        "CLAUDE_FLOW_MCP_TOOLS": "core"
+      }
     }
   },
   "enabledMcpjsonServers": [
@@ -285,6 +290,14 @@
     "ruflo-mods@ruflo": true,
     "ruflo-swarm@ruflo": true,
     "ruflo-console@ruflo": true
+  },
+  "pluginConfigs": {
+    "ruflo-mods@ruflo": {
+      "options": {
+        "agentTrim": true,
+        "compactCarry": true
+      }
+    }
   },
   "extraKnownMarketplaces": {
     "ruflo": { "source": { "source": "github", "repo": "ruvnet/ruflo" } }
